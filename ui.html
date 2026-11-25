@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CrimeShield AI - Real-time Surveillance</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #1a1a1a;
+            color: #e0e0e0;
+            overflow: hidden;
+        }
+
+        .container {
+            display: flex;
+            height: 100vh;
+            gap: 0;
+        }
+
+        /* ============ SIDEBAR ============ */
+        .sidebar {
+            width: 160px;
+            background-color: #0d0d0d;
+            border-right: 1px solid #333;
+            overflow-y: auto;
+            padding: 15px 10px;
+        }
+
+        .sidebar-title {
+            font-size: 12px;
+            font-weight: 600;
+            color: #00d4ff;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .camera-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .camera-thumbnail {
+            position: relative;
+            background-color: #1a1a1a;
+            border: 2px solid #333;
+            border-radius: 4px;
+            cursor: pointer;
+            aspect-ratio: 16/9;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .camera-thumbnail:hover {
+            border-color: #00d4ff;
+            box-shadow: 0 0 10px rgba(0, 212, 255, 0.3);
+        }
+
+        .camera-thumbnail.active {
+            border-color: #00d4ff;
+            box-shadow: 0 0 15px rgba(0, 212, 255, 0.5);
+        }
+
+        .camera-thumbnail img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .camera-label {
+            position: absolute;
+            bottom: 4px;
+            left: 4px;
+            background-color: rgba(0, 0, 0, 0.7);
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 10px;
+            font-weight: 600;
+            color: #00d4ff;
+        }
+
+        .camera-status {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            width: 8px;
+            height: 8px;
+            background-color: #00ff00;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* ============ MAIN CONTENT ============ */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background-color: #1a1a1a;
+        }
+
+        /* Header */
+        .header {
+            background-color: #0d0d0d;
+            border-bottom: 1px solid #333;
+            padding: 12px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .header-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #00d4ff;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            color: #00ff00;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background-color: #00ff00;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        .header-right {
+            font-size: 14px;
+            color: #888;
+        }
+
+        /* Video Area */
+        .video-area {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #000;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .video-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            background-color: #000;
+        }
+
+        .video-feed {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            background-color: #000;
+        }
+
+        .video-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        .pose-skeleton {
+            position: absolute;
+            stroke: #00ff00;
+            stroke-width: 2;
+            fill: none;
+        }
+
+        .pose-point {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background-color: #00ff00;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        /* Alert Box */
+        .alert-box {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background-color: rgba(255, 0, 0, 0.1);
+            border: 2px solid #ff0000;
+            border-radius: 6px;
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            animation: alert-pulse 0.6s infinite;
+        }
+
+        @keyframes alert-pulse {
+            0%, 100% { background-color: rgba(255, 0, 0, 0.15); }
+            50% { background-color: rgba(255, 0, 0, 0.25); }
+        }
+
+        .alert-icon {
+            font-size: 20px;
+            color: #ff0000;
+        }
+
+        .alert-text {
+            color: #ff0000;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .alert-confidence {
+            color: #ff8800;
+            font-size: 12px;
+            margin-left: 8px;
+        }
+
+        /* Camera Label */
+        .camera-name {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background-color: rgba(0, 0, 0, 0.7);
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            color: #888;
+        }
+
+        /* ============ RIGHT SIDEBAR ============ */
+        .right-sidebar {
+            width: 280px;
+            background-color: #0d0d0d;
+            border-left: 1px solid #333;
+            overflow-y: auto;
+            padding: 15px;
+        }
+
+        .panel {
+            background-color: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+
+        .panel-title {
+            font-size: 12px;
+            font-weight: 600;
+            color: #00d4ff;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .panel-menu {
+            background: none;
+            border: none;
+            color: #666;
+            cursor: pointer;
+            font-size: 16px;
+            padding: 0;
+        }
+
+        /* Audio Analysis */
+        .waveform {
+            width: 100%;
+            height: 60px;
+            background: linear-gradient(to bottom, #ff4444, #ff0000);
+            border-radius: 4px;
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-around;
+            padding: 4px;
+            gap: 2px;
+        }
+
+        .waveform-bar {
+            flex: 1;
+            background-color: rgba(255, 100, 100, 0.7);
+            border-radius: 2px;
+            min-height: 2px;
+        }
+
+        /* Event Analysis */
+        .metric {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .metric-label {
+            font-size: 12px;
+            color: #888;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .metric-value {
+            font-size: 14px;
+            font-weight: 600;
+            color: #00d4ff;
+            min-width: 40px;
+            text-align: right;
+        }
+
+        .metric-bar {
+            width: 100%;
+            height: 6px;
+            background-color: #333;
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 4px;
+        }
+
+        .metric-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00d4ff, #00ff88);
+            border-radius: 3px;
+        }
+
+        .metric-item {
+            margin-bottom: 14px;
+        }
+
+        /* Real-Time Data */
+        .warning-box {
+            background: linear-gradient(135deg, rgba(255, 0, 0, 0.2), rgba(255, 100, 0, 0.1));
+            border: 2px solid #ff0000;
+            border-radius: 6px;
+            padding: 12px;
+            text-align: center;
+            animation: alert-pulse 0.6s infinite;
+        }
+
+        .warning-icon {
+            font-size: 24px;
+            margin-bottom: 8px;
+        }
+
+        .warning-title {
+            font-weight: 600;
+            color: #ff0000;
+            font-size: 13px;
+            margin-bottom: 4px;
+        }
+
+        .warning-confidence {
+            color: #ff8800;
+            font-size: 12px;
+            margin-bottom: 8px;
+        }
+
+        .warning-details {
+            font-size: 11px;
+            color: #666;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .detail-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .detail-label {
+            color: #888;
+            font-size: 10px;
+            margin-bottom: 2px;
+        }
+
+        .detail-value {
+            color: #00d4ff;
+            font-weight: 600;
+            font-size: 11px;
+        }
+
+        /* Scrollbar Styling */
+        .sidebar::-webkit-scrollbar,
+        .right-sidebar::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .sidebar::-webkit-scrollbar-track,
+        .right-sidebar::-webkit-scrollbar-track {
+            background: #0d0d0d;
+        }
+
+        .sidebar::-webkit-scrollbar-thumb,
+        .right-sidebar::-webkit-scrollbar-thumb {
+            background: #333;
+            border-radius: 3px;
+        }
+
+        .sidebar::-webkit-scrollbar-thumb:hover,
+        .right-sidebar::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- LEFT SIDEBAR -->
+        <div class="sidebar">
+            <div class="sidebar-title">AI Surveillance Overview</div>
+            <div class="camera-grid">
+                <div class="camera-thumbnail active" onclick="selectCamera('C-01')">
+                    <div style="width: 100%; height: 100%; background: linear-gradient(135deg, #1a1a1a, #2a2a2a);"></div>
+                    <div class="camera-status"></div>
+                    <div class="camera-label">C-01</div>
+                </div>
+                <div class="camera-thumbnail" onclick="selectCamera('C-02')">
+                    <div style="width: 100%; height: 100%; background: linear-gradient(135deg, #1a1a1a, #2a2a2a);"></div>
+                    <div class="camera-status"></div>
+                    <div class="camera-label">C-02</div>
+                </div>
+                <div class="camera-thumbnail" onclick="selectCamera('C-03')">
+                    <div style="width: 100%; height: 100%; background: linear-gradient(135deg, #1a1a1a, #2a2a2a);"></div>
+                    <div class="camera-status"></div>
+                    <div class="camera-label">C-03</div>
+                </div>
+                <div class="camera-thumbnail" onclick="selectCamera('C-04')">
+                    <div style="width: 100%; height: 100%; background: linear-gradient(135deg, #1a1a1a, #2a2a2a);"></div>
+                    <div class="camera-status"></div>
+                    <div class="camera-label">C-04</div>
+                </div>
+                <div class="camera-thumbnail" onclick="selectCamera('C-05')">
+                    <div style="width: 100%; height: 100%; background: linear-gradient(135deg, #1a1a1a, #2a2a2a);"></div>
+                    <div class="camera-status"></div>
+                    <div class="camera-label">C-05</div>
+                </div>
+                <div class="camera-thumbnail" onclick="selectCamera('C-06')">
+                    <div style="width: 100%; height: 100%; background: linear-gradient(135deg, #1a1a1a, #2a2a2a);"></div>
+                    <div class="camera-status"></div>
+                    <div class="camera-label">C-06</div>
+                </div>
+                <div class="camera-thumbnail" onclick="selectCamera('C-07')">
+                    <div style="width: 100%; height: 100%; background: linear-gradient(135deg, #1a1a1a, #2a2a2a);"></div>
+                    <div class="camera-status"></div>
+                    <div class="camera-label">C-07</div>
+                </div>
+                <div class="camera-thumbnail" onclick="selectCamera('C-08')">
+                    <div style="width: 100%; height: 100%; background: linear-gradient(135deg, #1a1a1a, #2a2a2a);"></div>
+                    <div class="camera-status"></div>
+                    <div class="camera-label">C-08</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- MAIN CONTENT -->
+        <div class="main-content">
+            <!-- Header -->
+            <div class="header">
+                <div class="header-left">
+                    <div class="header-title">🛡️ CrimeShield AI</div>
+                    <div class="status-indicator">
+                        <div class="status-dot"></div>
+                        <span>LIVE</span>
+                    </div>
+                </div>
+                <div class="header-right">
+                    <span id="current-time">2026-08-17 22:34:11 GMT</span>
+                </div>
+            </div>
+
+            <!-- Video Area -->
+            <div class="video-area">
+                <div class="video-container">
+                    <!-- Placeholder for video feed -->
+                    <canvas id="videoCanvas" style="width: 100%; height: 100%; background-color: #000;"></canvas>
+                    
+                    <!-- Overlay Layer -->
+                    <div class="video-overlay">
+                        <!-- Alert Box -->
+                        <div class="alert-box" id="alert-box">
+                            <div class="alert-icon">⚠️</div>
+                            <div>
+                                <div class="alert-text">ALERT: VIOLENCE DETECTED</div>
+                                <div class="alert-confidence">(94.8%)</div>
+                            </div>
+                        </div>
+
+                        <!-- Camera Name -->
+                        <div class="camera-name">Camera 04 - East Parking Lot</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- RIGHT SIDEBAR -->
+        <div class="right-sidebar">
+            <!-- Audio Analysis Panel -->
+            <div class="panel">
+                <div class="panel-title">
+                    Audio Analysis
+                    <button class="panel-menu">⋯</button>
+                </div>
+                <div class="waveform">
+                    <div class="waveform-bar" style="height: 20%;"></div>
+                    <div class="waveform-bar" style="height: 35%;"></div>
+                    <div class="waveform-bar" style="height: 45%;"></div>
+                    <div class="waveform-bar" style="height: 60%;"></div>
+                    <div class="waveform-bar" style="height: 75%;"></div>
+                    <div class="waveform-bar" style="height: 80%;"></div>
+                    <div class="waveform-bar" style="height: 85%;"></div>
+                    <div class="waveform-bar" style="height: 70%;"></div>
+                    <div class="waveform-bar" style="height: 55%;"></div>
+                    <div class="waveform-bar" style="height: 40%;"></div>
+                    <div class="waveform-bar" style="height: 25%;"></div>
+                    <div class="waveform-bar" style="height: 15%;"></div>
+                </div>
+                <div style="text-align: center; color: #666; font-size: 11px; margin-top: 8px;">
+                    <span style="color: #ff4444;">SCREAM/IMPACT DETECTED (High Intensity)</span>
+                </div>
+            </div>
+
+            <!-- Event Analysis Panel -->
+            <div class="panel">
+                <div class="panel-title">
+                    Event Analysis
+                    <button class="panel-menu">⋯</button>
+                </div>
+
+                <div class="metric-item">
+                    <div class="metric">
+                        <div class="metric-label">
+                            <span>Attention Weight Progress</span>
+                        </div>
+                        <div class="metric-value">0.38</div>
+                    </div>
+                    <div class="metric-bar">
+                        <div class="metric-fill" style="width: 38%;"></div>
+                    </div>
+                </div>
+
+                <div class="metric-item">
+                    <div class="metric">
+                        <div class="metric-label">
+                            <span>Pose</span>
+                        </div>
+                        <div class="metric-value">0.38</div>
+                    </div>
+                    <div class="metric-bar">
+                        <div class="metric-fill" style="width: 38%;"></div>
+                    </div>
+                </div>
+
+                <div class="metric-item">
+                    <div class="metric">
+                        <div class="metric-label">
+                            <span>Motion</span>
+                        </div>
+                        <div class="metric-value">0.52</div>
+                    </div>
+                    <div class="metric-bar">
+                        <div class="metric-fill" style="width: 52%;"></div>
+                    </div>
+                </div>
+
+                <div class="metric-item">
+                    <div class="metric">
+                        <div class="metric-label">
+                            <span>Audio</span>
+                        </div>
+                        <div class="metric-value">0.30</div>
+                    </div>
+                    <div class="metric-bar">
+                        <div class="metric-fill" style="width: 30%;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Real-Time Data Panel -->
+            <div class="panel">
+                <div class="panel-title">
+                    Real-Time Data
+                    <button class="panel-menu">⋯</button>
+                </div>
+                <div class="warning-box">
+                    <div class="warning-icon">⚠️</div>
+                    <div class="warning-title">WARNING: VIOLENCE DETECTED</div>
+                    <div class="warning-confidence">(Confidence 94.8%)</div>
+                    <div class="warning-details">
+                        <div class="detail-item">
+                            <div class="detail-label">Event ID:</div>
+                            <div class="detail-value">CS-221027-04</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Time:</div>
+                            <div class="detail-value">22:34:11 GMT</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Update time
+        function updateTime() {
+            const now = new Date();
+            const timeString = now.toLocaleString('en-US', { 
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false
+            }).replace(',', '');
+            document.getElementById('current-time').textContent = timeString + ' GMT';
+        }
+        setInterval(updateTime, 1000);
+
+        // Camera selection
+        function selectCamera(cameraId) {
+            document.querySelectorAll('.camera-thumbnail').forEach(thumb => {
+                thumb.classList.remove('active');
+            });
+            event.target.closest('.camera-thumbnail').classList.add('active');
+        }
+
+        // Draw sample visualization on canvas
+        const canvas = document.getElementById('videoCanvas');
+        const ctx = canvas.getContext('2d');
+
+        function resizeCanvas() {
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+        }
+
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        // Draw placeholder video area
+        function drawFrame() {
+            // Fill background
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw grid pattern for parking lot effect
+            ctx.strokeStyle = '#222';
+            ctx.lineWidth = 1;
+            for (let i = 0; i < canvas.width; i += 50) {
+                ctx.beginPath();
+                ctx.moveTo(i, 0);
+                ctx.lineTo(i, canvas.height);
+                ctx.stroke();
+            }
+            for (let i = 0; i < canvas.height; i += 50) {
+                ctx.beginPath();
+                ctx.moveTo(0, i);
+                ctx.lineTo(canvas.width, i);
+                ctx.stroke();
+            }
+
+            // Draw some lights
+            ctx.fillStyle = '#ffaa00';
+            for (let i = 0; i < 10; i++) {
+                const x = Math.random() * canvas.width;
+                const y = Math.random() * (canvas.height * 0.3);
+                ctx.fillRect(x, y, 20, 30);
+            }
+
+            // Draw sample skeleton (two people)
+            drawSkeleton(canvas.width * 0.35, canvas.height * 0.6, true);
+            drawSkeleton(canvas.width * 0.65, canvas.height * 0.6, true);
+
+            requestAnimationFrame(drawFrame);
+        }
+
+        function drawSkeleton(centerX, centerY, fighting = false) {
+            const scale = 60;
+            const color = fighting ? '#ff0000' : '#00ff00';
+
+            // Skeleton points (simplified COCO pose)
+            const points = [
+                [centerX, centerY - scale * 1.5], // head
+                [centerX, centerY - scale * 0.8], // neck
+                [centerX - scale * 0.4, centerY - scale * 0.3], // left shoulder
+                [centerX + scale * 0.4, centerY - scale * 0.3], // right shoulder
+                [centerX - scale * 0.5, centerY + scale * 0.5], // left hip
+                [centerX + scale * 0.5, centerY + scale * 0.5], // right hip
+                [centerX - scale * 0.3, centerY + scale * 1.3], // left knee
+                [centerX + scale * 0.3, centerY + scale * 1.3], // right knee
+            ];
+
+            // Draw connections
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 2;
+            const connections = [
+                [0, 1], [1, 2], [1, 3], [2, 4], [3, 5], [4, 6], [5, 7]
+            ];
+
+            connections.forEach(conn => {
+                ctx.beginPath();
+                ctx.moveTo(points[conn[0]][0], points[conn[0]][1]);
+                ctx.lineTo(points[conn[1]][0], points[conn[1]][1]);
+                ctx.stroke();
+            });
+
+            // Draw joints
+            ctx.fillStyle = color;
+            points.forEach(point => {
+                ctx.beginPath();
+                ctx.arc(point[0], point[1], 4, 0, Math.PI * 2);
+                ctx.fill();
+            });
+        }
+
+        // Start animation
+        drawFrame();
+    </script>
+</body>
+</html>

@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CrimeShield AI - Real-time Surveillance</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #1a1a1a;
+            color: #e0e0e0;
+            overflow: hidden;
+        }
+
+        .container {
+            display: flex;
+            height: 100vh;
+            gap: 0;
+        }
+
+        /* ============ SIDEBAR ============ */
+        .sidebar {
+            width: 160px;
+            background-color: #0d0d0d;
+            border-right: 1px solid #333;
+            overflow-y: auto;
+            padding: 15px 10px;
+        }
+
+        .sidebar-title {
+            font-size: 12px;
+            font-weight: 600;
+            color: #00d4ff;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .camera-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .camera-thumbnail {
+            position: relative;
+            background-color: #1a1a1a;
+            border: 2px solid #333;
+            border-radius: 4px;
+            cursor: pointer;
+            aspect-ratio: 16/9;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .camera-thumbnail:hover {
+            border-color: #00d4ff;
+            box-shadow: 0 0 10px rgba(0, 212, 255, 0.3);
+        }
+
+        .camera-thumbnail.active {
+            border-color: #00d4ff;
+            box-shadow: 0 0 15px rgba(0, 212, 255, 0.5);
+        }
+
+        .camera-thumbnail img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .camera-label {
+            position: absolute;
+            bottom: 4px;
+            left: 4px;
+            background-color: rgba(0, 0, 0, 0.7);
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 10px;
+            font-weight: 600;
+            color: #00d4ff;
+        }
+
+        .camera-status {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            width: 8px;
+            height: 8px;
+            background-color: #00ff00;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* ============ MAIN CONTENT ============ */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background-color: #1a1a1a;
+        }
+
+        /* Header */
+        .header {
+            background-color: #0d0d0d;
+            border-bottom: 1px solid #333;
+            padding: 12px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .header-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #00d4ff;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            color: #00ff00;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background-color: #00ff00;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        .header-right {
+            font-size: 14px;
+            color: #888;
+        }
+
+        /* Video Area */
+        .video-area {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #000;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .video-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            background-color: #000;
+        }
+
+        .video-feed {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            background-color: #000;
+        }
+
+        .loading-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #00d4ff;
+            font-size: 18px;
+            text-align: center;
+        }
+
+        /* ============ RIGHT SIDEBAR ============ */
+        .right-sidebar {
+            width: 280px;
+            background-color: #0d0d0d;
+            border-left: 1px solid #333;
+            overflow-y: auto;
+            padding: 15px;
+        }
+
+        .panel {
+            background-color: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+
+        .panel-title {
+            font-size: 12px;
+            font-weight: 600;
+            color: #00d4ff;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .panel-menu {
+            background: none;
+            border: none;
+            color: #666;
+            cursor: pointer;
+            font-size: 16px;
+            padding: 0;
+        }
+
+        /* Audio Analysis */
+        .waveform {
+            width: 100%;
+            height: 60px;
+            background: linear-gradient(to bottom, #ff4444, #ff0000);
+            border-radius: 4px;
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-around;
+            padding: 4px;
+            gap: 2px;
+        }
+
+        .waveform-bar {
+            flex: 1;
+            background-color: rgba(255, 100, 100, 0.7);
+            border-radius: 2px;
+            min-height: 2px;
+            animation: waveAnimation 0.5s ease-in-out infinite;
+        }
+
+        @keyframes waveAnimation {
+            0%, 100% { height: 10%; }
+            50% { height: 100%; }
+        }
+
+        /* Event Analysis */
+        .metric {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .metric-label {
+            font-size: 12px;
+            color: #888;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .metric-value {
+            font-size: 14px;
+            font-weight: 600;
+            color: #00d4ff;
+            min-width: 40px;
+            text-align: right;
+        }
+
+        .metric-bar {
+            width: 100%;
+            height: 6px;
+            background-color: #333;
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 4px;
+        }
+
+        .metric-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00d4ff, #00ff88);
+            border-radius: 3px;
+            transition: width 0.3s ease;
+        }
+
+        .metric-item {
+            margin-bottom: 14px;
+        }
+
+        /* Real-Time Data */
+        .warning-box {
+            background: linear-gradient(135deg, rgba(255, 0, 0, 0.2), rgba(255, 100, 0, 0.1));
+            border: 2px solid #ff0000;
+            border-radius: 6px;
+            padding: 12px;
+            text-align: center;
+        }
+
+        .warning-box.safe {
+            border-color: #00ff00;
+            background: linear-gradient(135deg, rgba(0, 255, 0, 0.2), rgba(0, 255, 0, 0.1));
+        }
+
+        .warning-box.warning {
+            border-color: #ff8800;
+            background: linear-gradient(135deg, rgba(255, 136, 0, 0.2), rgba(255, 136, 0, 0.1));
+        }
+
+        .warning-box.alert {
+            animation: alert-pulse 0.6s infinite;
+        }
+
+        @keyframes alert-pulse {
+            0%, 100% { background: linear-gradient(135deg, rgba(255, 0, 0, 0.2), rgba(255, 100, 0, 0.1)); }
+            50% { background: linear-gradient(135deg, rgba(255, 0, 0, 0.3), rgba(255, 100, 0, 0.2)); }
+        }
+
+        .warning-icon {
+            font-size: 24px;
+            margin-bottom: 8px;
+        }
+
+        .warning-title {
+            font-weight: 600;
+            font-size: 13px;
+            margin-bottom: 4px;
+        }
+
+        .warning-title.violence {
+            color: #ff0000;
+        }
+
+        .warning-title.warning {
+            color: #ff8800;
+        }
+
+        .warning-title.safe {
+            color: #00ff00;
+        }
+
+        .warning-confidence {
+            font-size: 12px;
+            margin-bottom: 8px;
+        }
+
+        .warning-confidence.violence {
+            color: #ff8800;
+        }
+
+        .warning-confidence.warning {
+            color: #ffaa00;
+        }
+
+        .warning-confidence.safe {
+            color: #88ff00;
+        }
+
+        .warning-details {
+            font-size: 11px;
+            color: #666;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .detail-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .detail-label {
+            color: #888;
+            font-size: 10px;
+            margin-bottom: 2px;
+        }
+
+        .detail-value {
+            color: #00d4ff;
+            font-weight: 600;
+            font-size: 11px;
+        }
+
+        /* Scrollbar Styling */
+        .sidebar::-webkit-scrollbar,
+        .right-sidebar::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .sidebar::-webkit-scrollbar-track,
+        .right-sidebar::-webkit-scrollbar-track {
+            background: #0d0d0d;
+        }
+
+        .sidebar::-webkit-scrollbar-thumb,
+        .right-sidebar::-webkit-scrollbar-thumb {
+            background: #333;
+            border-radius: 3px;
+        }
+
+        .sidebar::-webkit-scrollbar-thumb:hover,
+        .right-sidebar::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+
+        .loading-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #666;
+            font-size: 14px;
+            background-color: rgba(0, 0, 0, 0.7);
+            padding: 10px 20px;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- LEFT SIDEBAR -->
+        <div class="sidebar">
+            <div class="sidebar-title">AI Surveillance Overview</div>
+            <div class="camera-grid">
+                <div class="camera-thumbnail active">
+                    <div style="width: 100%; height: 100%; background: linear-gradient(135deg, #1a1a1a, #2a2a2a); display: flex; align-items: center; justify-content: center; color: #00d4ff;">Active</div>
+                    <div class="camera-status"></div>
+                    <div class="camera-label">C-01</div>
+                </div>
+                <div class="camera-thumbnail">
+                    <div style="width: 100%; height: 100%; background: linear-gradient(135deg, #1a1a1a, #2a2a2a);"></div>
+                    <div class="camera-status"></div>
+                    <div class="camera-label">C-02</div>
+                </div>
+                <div class="camera-thumbnail">
+                    <div style="width: 100%; height: 100%; background: linear-gradient(135deg, #1a1a1a, #2a2a2a);"></div>
+                    <div class="camera-status"></div>
+                    <div class="camera-label">C-03</div>
+                </div>
+                <div class="camera-thumbnail">
+                    <div style="width: 100%; height: 100%; background: linear-gradient(135deg, #1a1a1a, #2a2a2a);"></div>
+                    <div class="camera-status"></div>
+                    <div class="camera-label">C-04</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- MAIN CONTENT -->
+        <div class="main-content">
+            <!-- Header -->
+            <div class="header">
+                <div class="header-left">
+                    <div class="header-title">🛡️ CrimeShield AI</div>
+                    <div class="status-indicator">
+                        <div class="status-dot"></div>
+                        <span id="live-status">CONNECTING...</span>
+                    </div>
+                </div>
+                <div class="header-right">
+                    <span id="current-time">Loading...</span>
+                </div>
+            </div>
+
+            <!-- Video Area -->
+            <div class="video-area">
+                <div class="video-container">
+                    <img id="videoFeed" class="video-feed" src="/video_feed" alt="Live Video Feed">
+                    <div class="loading-text" id="loadingText">Initializing camera...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- RIGHT SIDEBAR -->
+        <div class="right-sidebar">
+            <!-- Audio Analysis Panel -->
+            <div class="panel">
+                <div class="panel-title">
+                    Audio Analysis
+                    <button class="panel-menu">⋯</button>
+                </div>
+                <div class="waveform">
+                    <div class="waveform-bar"></div>
+                    <div class="waveform-bar"></div>
+                    <div class="waveform-bar"></div>
+                    <div class="waveform-bar"></div>
+                    <div class="waveform-bar"></div>
+                    <div class="waveform-bar"></div>
+                    <div class="waveform-bar"></div>
+                    <div class="waveform-bar"></div>
+                    <div class="waveform-bar"></div>
+                    <div class="waveform-bar"></div>
+                    <div class="waveform-bar"></div>
+                    <div class="waveform-bar"></div>
+                </div>
+                <div style="text-align: center; color: #666; font-size: 11px; margin-top: 8px;">
+                    <span id="audioStatus">Monitoring audio...</span>
+                </div>
+            </div>
+
+            <!-- Event Analysis Panel -->
+            <div class="panel">
+                <div class="panel-title">
+                    Event Analysis
+                    <button class="panel-menu">⋯</button>
+                </div>
+
+                <div class="metric-item">
+                    <div class="metric">
+                        <div class="metric-label">Pose</div>
+                        <div class="metric-value" id="poseScore">0.38</div>
+                    </div>
+                    <div class="metric-bar">
+                        <div class="metric-fill" id="poseFill" style="width: 38%;"></div>
+                    </div>
+                </div>
+
+                <div class="metric-item">
+                    <div class="metric">
+                        <div class="metric-label">Motion</div>
+                        <div class="metric-value" id="motionScore">0.52</div>
+                    </div>
+                    <div class="metric-bar">
+                        <div class="metric-fill" id="motionFill" style="width: 52%;"></div>
+                    </div>
+                </div>
+
+                <div class="metric-item">
+                    <div class="metric">
+                        <div class="metric-label">Audio</div>
+                        <div class="metric-value" id="audioScore">0.30</div>
+                    </div>
+                    <div class="metric-bar">
+                        <div class="metric-fill" id="audioFill" style="width: 30%;"></div>
+                    </div>
+                </div>
+
+                <div class="metric-item">
+                    <div class="metric">
+                        <div class="metric-label">Confidence</div>
+                        <div class="metric-value" id="confidenceScore">0.00</div>
+                    </div>
+                    <div class="metric-bar">
+                        <div class="metric-fill" id="confidenceFill" style="width: 0%;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Real-Time Data Panel -->
+            <div class="panel">
+                <div class="panel-title">
+                    Real-Time Data
+                    <button class="panel-menu">⋯</button>
+                </div>
+                <div class="warning-box" id="warningBox">
+                    <div class="warning-icon" id="warningIcon">⏳</div>
+                    <div class="warning-title" id="warningTitle">Initializing...</div>
+                    <div class="warning-confidence" id="warningConfidence"></div>
+                    <div class="warning-details">
+                        <div class="detail-item">
+                            <div class="detail-label">Event ID:</div>
+                            <div class="detail-value" id="eventId">CS-000000-00</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Time:</div>
+                            <div class="detail-value" id="eventTime">--:--:-- GMT</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Update time
+        function updateTime() {
+            const now = new Date();
+            const timeString = now.toLocaleString('en-US', { 
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false
+            }).replace(',', '');
+            document.getElementById('current-time').textContent = timeString + ' GMT';
+        }
+        setInterval(updateTime, 500);
+
+        // Fetch detection data
+        async function updateDetectionData() {
+            try {
+                const response = await fetch('/api/detection-data');
+                const data = await response.json();
+                
+                // Update metrics
+                document.getElementById('poseScore').textContent = data.pose_score.toFixed(2);
+                document.getElementById('motionScore').textContent = data.motion_score.toFixed(2);
+                document.getElementById('audioScore').textContent = data.audio_score.toFixed(2);
+                document.getElementById('confidenceScore').textContent = data.confidence.toFixed(2);
+                
+                document.getElementById('poseFill').style.width = (data.pose_score * 100) + '%';
+                document.getElementById('motionFill').style.width = (data.motion_score * 100) + '%';
+                document.getElementById('audioFill').style.width = (data.audio_score * 100) + '%';
+                document.getElementById('confidenceFill').style.width = (data.confidence * 100) + '%';
+                
+                // Update warning box
+                const warningBox = document.getElementById('warningBox');
+                const warningIcon = document.getElementById('warningIcon');
+                const warningTitle = document.getElementById('warningTitle');
+                const warningConfidence = document.getElementById('warningConfidence');
+                const eventId = document.getElementById('eventId');
+                
+                warningBox.classList.remove('safe', 'warning', 'alert');
+                
+                if (data.status === 'VIOLENCE') {
+                    warningIcon.textContent = '⚠️';
+                    warningTitle.textContent = 'WARNING: VIOLENCE DETECTED';
+                    warningTitle.className = 'warning-title violence';
+                    warningConfidence.textContent = `(Confidence ${(data.confidence * 100).toFixed(1)}%)`;
+                    warningConfidence.className = 'warning-confidence violence';
+                    warningBox.classList.add('alert');
+                } else if (data.status === 'WARNING') {
+                    warningIcon.textContent = '⚠️';
+                    warningTitle.textContent = 'UNCERTAIN - Monitoring...';
+                    warningTitle.className = 'warning-title warning';
+                    warningConfidence.textContent = `(Risk ${(data.confidence * 100).toFixed(1)}%)`;
+                    warningConfidence.className = 'warning-confidence warning';
+                    warningBox.classList.add('warning');
+                } else {
+                    warningIcon.textContent = '✅';
+                    warningTitle.textContent = 'Status: SAFE';
+                    warningTitle.className = 'warning-title safe';
+                    warningConfidence.textContent = `(Confidence ${((1 - data.confidence) * 100).toFixed(1)}%)`;
+                    warningConfidence.className = 'warning-confidence safe';
+                    warningBox.classList.add('safe');
+                }
+                
+                eventId.textContent = data.event_id;
+                
+                // Update event time
+                if (data.timestamp) {
+                    const eventDate = new Date(data.timestamp);
+                    const timeStr = eventDate.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                    document.getElementById('eventTime').textContent = timeStr + ' GMT';
+                }
+                
+                // Update audio status
+                if (data.confidence > 0.7) {
+                    document.getElementById('audioStatus').innerHTML = '<span style="color: #ff4444;">SCREAM/IMPACT DETECTED (High Intensity)</span>';
+                } else if (data.confidence > 0.4) {
+                    document.getElementById('audioStatus').innerHTML = '<span style="color: #ffaa00;">Elevated noise detected</span>';
+                } else {
+                    document.getElementById('audioStatus').innerHTML = '<span style="color: #88ff88;">Normal audio levels</span>';
+                }
+                
+            } catch (error) {
+                console.error('Error fetching detection data:', error);
+            }
+        }
+
+        // Update live status
+        async function updateLiveStatus() {
+            try {
+                const response = await fetch('/api/status');
+                const data = await response.json();
+                
+                const statusEl = document.getElementById('live-status');
+                if (data.camera_active) {
+                    statusEl.textContent = 'LIVE';
+                    statusEl.style.color = '#00ff00';
+                    document.getElementById('loadingText').style.display = 'none';
+                } else {
+                    statusEl.textContent = 'CONNECTING...';
+                    statusEl.style.color = '#ffaa00';
+                }
+            } catch (error) {
+                console.error('Error fetching status:', error);
+                document.getElementById('live-status').textContent = 'ERROR';
+                document.getElementById('live-status').style.color = '#ff0000';
+            }
+        }
+
+        // Update every 500ms
+        setInterval(updateDetectionData, 500);
+        setInterval(updateLiveStatus, 1000);
+
+        // Initial updates
+        updateTime();
+        updateDetectionData();
+        updateLiveStatus();
+    </script>
+</body>
+</html>

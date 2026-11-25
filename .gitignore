@@ -1,0 +1,16 @@
+.venv*/
+.vscode/
+__pycache__/
+*.py[cod]
+
+# Local data and generated features
+Dataset_Combined/
+archive/
+processed_features/
+train/
+val/
+
+# Large media and model files
+*.mp4
+*.pth
+*.pt
